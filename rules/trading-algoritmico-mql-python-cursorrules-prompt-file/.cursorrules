@@ -1,0 +1,100 @@
+# Trading Algorithmic Cursor Rules (MQL4/MQL5/Python)
+# Sintesis reutilizable para proyectos de trading algoritmico.
+
+## Compatibilidad con reglas globales
+
+- Estas reglas complementan las reglas globales de Cursor.
+- No bloquean reglas globales; las extienden para dominio de trading.
+
+## Alineacion con REGLA 16 y REGLA 17
+
+- REGLA 17:
+  - Mantener plan maestro del frente activo con ruta dinamica:
+    - `Plan.md` o `<Componente>_Plan.md`.
+  - Sincronizar plan antes de implementar cambios tecnicos.
+- REGLA 16:
+  - Mantener `.cursorrules` del proyecto alineado con stack real (MQL4/MQL5/Python trading).
+  - Al iniciar una nueva sesion, si existe `CURSORRULES/reference`, actualizar catalogo antes de sintetizar reglas:
+    - `git -C CURSORRULES/reference pull`
+  - Si no existe `CURSORRULES/reference`, clonar referencia segun flujo del proyecto.
+
+## Persistencia de planes (ruta dinamica)
+
+- Mantener un plan maestro del frente activo:
+  - `Plan.md` o `<Componente>_Plan.md`.
+- Antes de implementar tareas basadas en plan, sincronizar primero el plan correspondiente.
+- Si cambia alcance durante la ejecucion, actualizar plan antes de continuar.
+
+## Planes por archivo (obligatorio)
+
+- Todo archivo de trading creado o modificado debe tener su plan:
+  - `Indicators/<NombreArchivo>_Plan.md`
+  - `Experts/<NombreArchivo>_Plan.md`
+  - `Scripts/<NombreArchivo>_Plan.md`
+  - `<ruta_python>/<NombreArchivo>_Plan.md`
+- Cada `*_Plan.md` debe incluir minimo:
+  - fecha, objetivo, alcance, pasos de implementacion, criterios de verificacion.
+- Usar `Plantilla_Artefacto_Plan.md` para homogeneidad.
+
+## Arquitectura de responsabilidades
+
+- Indicadores:
+  - calculo y exposicion de senales por buffers.
+  - no ejecutar operaciones de trading.
+- EAs:
+  - decisiones de entrada/salida, gestion de riesgo y ejecucion de ordenes.
+  - consumo de indicadores via `iCustom` + `CopyBuffer`.
+- Scripts/Python:
+  - soporte de datos, entrenamiento, analitica, validaciones y utilidades.
+
+## Reglas MQL5 criticas
+
+- Usar `input` con prefijo `Inp`.
+- Crear handles de indicadores en `OnInit` y liberar en `OnDeinit`.
+- No recrear handles dentro de `OnTick` o bucles de calculo.
+- Validar `CopyBuffer/CopyRates` y manejar errores con `GetLastError()`.
+- Trading con `CTrade`; evitar funciones MQL4 (`OrderSend`, `OrderClose`, `OrderModify`).
+- Gestion por posiciones (`PositionSelect`, `PositionGetInteger`, `PositionGetDouble`).
+
+## Contrato de buffers para integracion EA
+
+- Todo indicador debe documentar en su `*_Plan.md`:
+  - indice de buffer,
+  - nombre semantico,
+  - unidad (precio/puntos/ratio/direccion),
+  - aplicacion (historico, vela actual, ambos),
+  - convencion de vacio (`EMPTY_VALUE` o equivalente).
+- Si cambia un indice de buffer:
+  - actualizar plan del indicador,
+  - actualizar plan del EA consumidor,
+  - actualizar `CopyBuffer` del EA en el mismo frente de cambio.
+
+## Intrabarra vs historico (no lag)
+
+- Para reaccion en tiempo real:
+  - usar `Bid/Ask` o `MqlTick` en vela actual.
+- Para comparacion historica:
+  - usar barras cerradas (`OHLC`).
+- No mezclar sin etiquetar semantica de cada buffer.
+
+## Persistencia de ticks y rendimiento
+
+- Evitar escritura no acotada por tick.
+- Preferir:
+  - agregacion por barra,
+  - snapshots por evento (rupturas, cambios de direccion, umbrales),
+  - rotacion de archivos por simbolo/fecha.
+
+## Verificacion minima por cambio
+
+- Indicadores:
+  - compilan sin errores,
+  - buffers coherentes en historico y vela actual.
+- EAs:
+  - precondiciones de trading validadas,
+  - manejo de errores de ejecucion documentado,
+  - no ruptura de reglas de posicion/magic.
+- Python:
+  - manejo de excepciones,
+  - salida reproducible para auditoria de pruebas.
+
